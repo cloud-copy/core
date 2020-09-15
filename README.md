@@ -206,6 +206,34 @@ $ cloudcopy get jobs --workflow=test-info --format=yaml --limit=1
   log: /var/log/cloudcopy/test-info/2000-01-01-10-00-00/log.jsonl
 ```
 
+### Viewing Job Lobs
+
+It is possible to view job log lines with the command:
+
+``` bash
+cloudcopy get logs [--workflow=] [--job=] [--limit=] [--before=] [--after=] [--ascending]
+```
+
+- `--limit`, `--before`, and `--after` are all applied to log lines
+
+For example, to get all logs for a workflow on a certain day:
+```
+$ cloudcopy get logs --workflow=test-copy --before=2020-10-02T00:00:00Z --after=2020-10-01T00:00:00Z
+[2020-10-01T00:00:00Z] Started workflow "test-copy"
+[2020-10-01T00:01:00Z] Comparing schema of "staging" (source) and "local" (target)...
+[2020-10-01T00:01:00Z] Found 10 schema changes
+[2020-10-01T00:02:00Z] Applying changes to "local"...
+[2020-10-01T00:02:00Z] Applied 10 changed
+[2020-10-01T00:03:00Z] Comparing data hashes...
+[2020-10-01T00:03:00Z] Found 3 shard mismatches in 2 tables
+[2020-10-01T00:04:00Z] Dropping foreign keys...
+[2020-10-01T00:04:00Z] Dropped 10 foreign keys to be re-added
+[2020-10-01T00:04:00Z] Syncing mismatched shards...
+[2020-10-01T00:03:00Z] Synced 3 shards shards
+[2020-10-01T00:01:00Z] Compare "staging" (source) and "local" (target)...
+[2020-10-01T00:04:00Z] Found 0 diffs
+[2020-10-01T00:04:00Z] Completed workflow "test-copy"
+```
 ## Supported Databases
 
 Relational:
