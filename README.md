@@ -6,7 +6,7 @@ This repository contains the code and for the CloudCopy Server, a free tool for 
 
 CloudCopy uses a client-server model to allow your server to process data asynchronously in the background:
 - The client communicates with the server to manage workflows and view flogs
-- The server executes triggered workflows saves the results as logs
+- The server executes triggered workflows - each such execution is called a job - and saves the results as logs
 
 ## Installation
 
@@ -18,20 +18,20 @@ Once installed, you can start the server by running the "cloudcopy-server" app (
 
 You then interact with the server by using the client command line tool, called "cloudcopy":
 
-### Creating a Database
+### Adding a Database
 
 A **database** is the central abstraction a CloudCopy server uses to connect to sources of data (see [this list of supported databases](#supported-databases)).
 
-To link a database to your server, run the command:
+To connect a new database to your server, run the command:
 
 ``` bash
-cloudcopy create database <name> <url>
+cloudcopy add database <name> <url>
 ```
 
 For example, a local test database:
 ```
-$ cloudcopy create database test postgres://localhost/test
-Created database "test"
+$ cloudcopy add database test postgres://localhost/test
+Added database "test"
 ```
 
 ### Updating a Database
@@ -100,7 +100,7 @@ $ cat test-info.yaml | cloudcopy create workflow test-info
 Created workflow "test-info"
 ```
 
-A workflow to copy data from a "staging" database to a "local" database every hour:
+A workflow to copy data from a "staging" database to a "test" database every hour:
 ``` bash
 $ cat test-copy.yaml
 
@@ -110,7 +110,7 @@ triggers:
 steps:
   - type: copy
     source: staging
-    target: local
+    target: test
 ```
 
 ### Updating a Workflow
@@ -173,6 +173,14 @@ Some important notes about workflow execution:
 - If a server crashes, it attempts to resume or restart any jobs that were in progress
 - Any workflow with `semaphore: n` can only have `n` running jobs at a given time
 
+### Deleting a Workflow
+
+A workflow can be removed, but all its jobs currently running - if any - would run their course until completion. The command to delete (aka remove) a workflow is as follows:
+
+``` bash
+cloudcopy delete workflow <name>
+```
+
 ### Viewing Jobs
 
 It is possible to view jobs with:
@@ -206,7 +214,7 @@ $ cloudcopy get jobs --workflow=test-info --format=yaml --limit=1
   log: /var/log/cloudcopy/test-info/2000-01-01-10-00-00/log.jsonl
 ```
 
-### Viewing Job Lobs
+### Viewing Job Logs
 
 It is possible to view job log lines with the command:
 
