@@ -1,10 +1,10 @@
-# CloudCopy Server
+# CloudCopy Core
 
-This repository contains the code and for the CloudCopy Server, a free tool for running declaratives data processing workflows (ETL).
+This repository contains the code and for CloudCopy Core, a free tool for running declaratives data processing workflows (ETL).
 
 ## Overview
 
-CloudCopy uses a client-server model to allow your server to process data asynchronously in the background:
+CloudCopy Core uses a client-server model to allow your server to process data asynchronously in the background:
 - The client communicates with the server to manage workflows and view flogs
 - The server executes triggered workflows saves the results as logs
 
