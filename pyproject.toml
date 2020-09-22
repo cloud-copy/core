@@ -7,7 +7,10 @@ license = "MIT"
 
 [tool.poetry.dependencies]
 python = "^3.7"
-adbc = "^0.0.1"
+adbc = {git = "https://github.com/aleontiev/adbc.git", rev = "v0.2.5"}
+fastapi = "^0.61.1"
+huey = "^2.3.0"
+uvicorn = "^0.11.8"
 
 [tool.poetry.dev-dependencies]
 
