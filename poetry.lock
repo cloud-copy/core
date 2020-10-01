@@ -1,11 +1,10 @@
 [[package]]
 category = "main"
 description = ""
-develop = true
 name = "adbc"
 optional = false
 python-versions = "^3.7"
-version = "0.2.6"
+version = "0.2.7"
 
 [package.dependencies]
 aiobotocore = "^0.12.0"
@@ -22,10 +21,9 @@ pyaml = "*"
 uvloop = "^0.14.0"
 
 [package.source]
-reference = ""
-type = "directory"
-url = "/home/ant/code/adbc"
-
+reference = "59c11d51c3d1d337bae3e73b4529ab3231754f44"
+type = "git"
+url = "https://github.com/aleontiev/adbc.git"
 [[package]]
 category = "main"
 description = "Async client for aws services using botocore and aiohttp"
@@ -969,7 +967,7 @@ docs = ["sphinx", "jaraco.packaging (>=3.2)", "rst.linker (>=1.9)"]
 testing = ["pytest (>=3.5,<3.7.3 || >3.7.3)", "pytest-checkdocs (>=1.2.3)", "pytest-flake8", "pytest-cov", "jaraco.test (>=3.2.0)", "jaraco.itertools", "func-timeout", "pytest-black (>=0.3.7)", "pytest-mypy"]
 
 [metadata]
-content-hash = "68f39fc2d9b34bdf5c68975473a358665a2f784aa1d7774e07f501d31174e5a3"
+content-hash = "ee6c2e504b5a0fc64540dbf81d4c58e77791e2f63ed864906e9812f8702d690e"
 python-versions = "^3.7"
 
 [metadata.files]
