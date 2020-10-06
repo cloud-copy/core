@@ -4,9 +4,23 @@ from adbc.zql.dialect import Backend
 from adbc.generators import G
 
 
-class Model(Table):
+class Model(object):
+    def __init__(self, model):
+        self.model = model
+        self.database = self.model.database
+
+    def __getattr__(self, key):
+        if hasattr(self, key):
+            return super(Model, self).__getattr__(key)
+        return getattr(self.model, key)
+
     @classmethod
-    def get_schema(cls):
+    async def initialize(cls, db):
+        model = await db.get_model(cls.name)
+        return cls(model)
+
+    @classmethod
+    def get_table_schema(cls):
         columns = []
         constraints = []
 

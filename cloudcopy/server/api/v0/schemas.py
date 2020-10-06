@@ -13,6 +13,7 @@ class Out(BaseModel):
 class Database(BaseModel):
     name: str
     url: str
+    scope: Optional[dict] = None
 
 
 class DatabaseIn(Database):
@@ -22,6 +23,8 @@ class DatabaseIn(Database):
 
 class DatabaseOut(Database):
     id: str
+    created: Optional[str] = None
+    updated: Optional[str] = None
 
 
 class GetDatabaseOut(Out):

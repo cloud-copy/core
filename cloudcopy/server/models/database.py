@@ -1,5 +1,5 @@
 from .base import Model
-from adbc.generators import G
+from cloudcopy.server.utils import is_uuid
 
 
 class Database(Model):
@@ -19,5 +19,16 @@ class Database(Model):
         'scope': {
             'type': 'text',
             'null': True
-        }
+        },
+        'created': {
+            'type': 'text',
+        },
+        'updated': {
+            'type': 'text',
+        },
     }
+
+    async def get_url(self, id):
+        """Get database URL by ID or name"""
+        key = 'id' if is_uuid(value) else 'name'
+        return await self.where({'=': [key, f'"{id}"']}).field('url').one()

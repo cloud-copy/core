@@ -1,17 +1,28 @@
 import os
 from cloudcopy.common.utils import Settings
 
+BASE_PATH = os.environ.get(
+    'CLCP_PATH', os.path.expanduser('~/.clcp')
+)
+
 # INTERNAL_DATABASE_FILE: path to server's SQLite file
 # TODO: support cloud database
 INTERNAL_DATABASE_FILE = os.environ.get(
-    'CLCP_INTERNAL_DATABASE_FILE', os.path.expanduser('~/.clcp.sqlite3')
+    'CLCP_INTERNAL_DATABASE_FILE', os.path.join(BASE_PATH, 'data.db')
 )
 INTERNAL_DATABASE_URL = f'file:{INTERNAL_DATABASE_FILE}'
+TASK_DATABASE_FILE = os.environ.get(
+    'CLCP_TASK_DATBASE_FILE', os.path.join(BASE_PATH, 'tasks.db')
+)
 
-# LOG_FILE: path to server's log file
+DEBUG = os.environ.get(
+    'CLCP_DEBUG', True
+)
+
+# LOG_PATH: path to server's log files
 # TODO: support cloud logging
-LOG_FILE = os.environ.get(
-    'CLCP_LOG_FILE', os.path.expanduser('~/.clcp.log')
+LOG_PATH = os.environ.get(
+    'CLCP_LOG_PATH', os.path.join(BASE_PATH, 'logs')
 )
 
 # all upper-case values in this file are added to a settings object
