@@ -1,2 +1,2 @@
 def load():
-    from .v0.endpoints import *
+    from .v0.endpoints import loaded

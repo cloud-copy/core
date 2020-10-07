@@ -1,32 +1,23 @@
 from .base import Model
+from adbc.generators import G
 
 
 class Database(Model):
+    name = 'database'
     columns = {
         'id': {
             'type': 'text',
-            'null': False
+            'primary': True
         },
         'url': {
             'type': 'text',
-            'null': False
         },
         'name': {
-            'type': 'text',
-            'null': False
+            'unique': True,
+            'type': 'text'
         },
         'scope': {
             'type': 'text',
             'null': True
-        }
-    }
-    constraints = {
-        'database__id': {
-            'type': 'primary',
-            'columns': ['id']
-        },
-        'database__name': {
-            'type': 'unique',
-            'columns': ['name']
         }
     }
