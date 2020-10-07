@@ -23,12 +23,17 @@ class Workflow(Model):
             #   target: Optional[str] (Other Database ID)
             #   scope: Optional[dict]
         },
-        'retries': {
+        'max_retries': {
             'type': 'integer',
             'default': -1,
             # number of times to retry a task
             # 0 means do not retry
             # -1 means retry indefinitely (default)
+        },
+        'recent_errors': {
+            'type': 'integer',
+            'default': 0,
+            # number of times the task has recently failed consecutively
         },
         'timeout': {
             'type': 'integer',
@@ -46,10 +51,14 @@ class Workflow(Model):
             'type': 'text',
             'null': True
             # JSON object with either "rate" or "cron" key:
-            # rate: 5 minutes (or seconds, hours, days)
-            # cron: * * * * 0 1
+            # rate: "5 minutes" (or seconds, hours, days)
+            # cron: ["*", "*", "*", "*", "0", "1"]
             # if set, the workflow will be triggered on the schedule
             # if not set, the workflow can still be triggered manually
+        },
+        'running_jobs': {
+            'type': 'integer',
+            'default': 0
         },
         'concurrency': {
             'type': 'integer',
@@ -96,7 +105,7 @@ class Workflow(Model):
                     steps[key] = resolved[value]
                 else:
                     # memoize lookups
-                    resolved[value] = steps[key] = await Database.get_url(
-                        value
+                    resolved[value] = steps[key] = await Database.get_field(
+                        'url', value
                     )
         return steps

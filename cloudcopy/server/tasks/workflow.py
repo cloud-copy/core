@@ -49,20 +49,64 @@ async def _execute(workflow_id: str):
 
     id = get_uuid()
     workflow_id = workflow['id']
+    concurrency = workflow['concurrency']
+    running_jobs = workflow['running_jobs']
+    # TODO: solve race condition:
+    # implement a lock on WorkflowID
+    # to prevent running_jobs from being double-incremented beyond the limit
+    if concurrency > 0 and running_jobs >= concurrency:
+        # fail with concurrency error
+        await Job.values({
+            'id': id,
+            'workflow_id': workflow_id,
+            'result': json.dumps({
+                'error': {
+                    'type': 'ConcurrencyError',
+                    'message': f'At concurrency limit: {concurrency}'
+                }
+            }),
+            'status': Job.FAILED,
+            'started': now(),
+            'completed': now()
+        }).add()
+        return
+
     log_file = os.path.join(
         settings.LOG_PATH,
         f"W_{workflow_id}_J_{id}.log"
     )
-    await Job.values({
-        'id': id,
-        'workflow_id': workflow_id,
-        'log': log_file,
-        'status': Job.STARTED,
-        'started': now()
-    }).add()
-    job = await Job.key(id).one()
+
+    await Job
+        .values({
+            'id': id,
+            'workflow_id': workflow_id,
+            'log': log_file,
+            'status': Job.STARTED,
+            'started': now()
+        })
+        .add()
+    # using the current value + 1
+    # guarantees that running jobs will be incremented properly
+    # even if this code were running in different threads
+    await Workflow
+        .key(workflow_id)
+        .values({
+            "running_jobs": {
+                '+': [
+                    "running_jobs",
+                    1
+                ]
+            }
+        })
+        .set()
+    job = await Job
+        .key(id)
+        .one()
 
     steps = await Workflow.resolve_steps(workflow)
+    timeout = workflow['timeout']
+    max_retries = workflow['max_retries']
+    recent_errors = workflow['recent_errors']
     async with aiofiles.open(log_file, mode='w') as log:
         logger = WorkflowLogger(
             stdout=log,
@@ -74,9 +118,19 @@ async def _execute(workflow_id: str):
             logger=logger
         )
         success = False
+        result = None
+
         try:
-            result = await runner.run()
+            result = await asyncio.wait_for(runner.run(), timeout=timeout)
             success = True
+        except Exception as e:
+            result = {
+                'error': {
+                    'type': e.__class__.__name__,
+                    'message': str(e)
+                }
+            }
+            recent_errors += 1
         finally:
             # update job with status and completion time
             status = Job.SUCCEEDED if success else Job.FAILED
@@ -87,7 +141,35 @@ async def _execute(workflow_id: str):
                 'updated': time,
                 'completed': time
             }
-            await Job.key(id).values(values).set()
+            # update job
+            await Job
+                .key(id)
+                .values(values)
+                .set()
+
+            retry = False
+            delay = 2 ** recent_errors
+            if not success:
+                if recent_errors <= max_retries:
+                    # retry this task with exponential back-off
+                    # TODO: make back-off configurable?
+                    retry = True
+            else:
+                # reset recent_errors
+                recent_errors = 0
+            await Workflow.key(workflow_id).values({
+                'recent_errors': recent_errors,
+                'running_jobs': {
+                    '-': [
+                        'running_jobs',
+                        1
+                    ]
+                }
+            }).set()
+            if retry:
+                execute.schedule(
+                    (workflow_id, ), delay=delay
+                )
 
 
 @app.task()

@@ -23,12 +23,20 @@ async def test_server():
                     {
                         'name': 'test1',
                         'url': 'file:test1',
-                        'scope': {}
+                        'scope': {
+                            'schemas': {
+                                'public': True
+                            }
+                        }
                     },
                     {
                         'name': 'test2',
                         'url': 'postgres://localhost:5432/test2',
-                        'scope': {}
+                        'scope': {
+                            'schemas': {
+                                'public': True
+                            }
+                        }
                     }
                 ]
                 # POST
@@ -90,9 +98,9 @@ async def test_server():
                 assert response['updated'] >= updated
                 updated = response['updated']
 
-                # PATCH
+                # PATCH (by name)
                 response = await client.patch(
-                    f'/v0/databases/{id}/',
+                    f'/v0/databases/foo/',
                     data=json.dumps({
                         'data': {
                             'name': 'bar'
@@ -106,8 +114,8 @@ async def test_server():
                 assert response['url'] == 'file:foo'
                 assert response['updated'] >= updated
 
-                # DELETE
-                response = await client.delete(f'/v0/databases/{id}/')
+                # DELETE (by newly changed name)
+                response = await client.delete(f'/v0/databases/bar/')
                 assert response.status_code == 204
 
                 response = await client.get('/v0/databases/')
