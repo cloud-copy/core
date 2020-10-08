@@ -1,32 +1,79 @@
 import json
 import copy
-from fastapi import Depends
+from typing import Optional, List
+
 from adbc.store import Database as Storage
+from pydantic import BaseModel
+from fastapi import Depends
+
 from cloudcopy.server.api import api
 from cloudcopy.server.models import Database
 from cloudcopy.server.storage import get_internal_database
-from .schemas import (
-    GetDatabaseOut,
-    GetDatabasesOut,
-    AddDatabaseOut,
-    AddDatabaseIn,
-    EditDatabaseIn,
-    EditDatabaseOut,
-    SetDatabaseIn,
-    SetDatabaseOut,
-    DeleteDatabaseOut
-)
+from ...utils import from_request, to_response
 
 VERSION = 'v0'
 ENDPOINT = 'databases'
 
 
-def from_request(item, patch=False):
-    return item.dict(exclude_unset=patch)['data']
+class In(BaseModel):
+    pass
 
 
-def to_response(data):
-    return {'data': data}
+class Out(BaseModel):
+    pass
+
+
+class Base(BaseModel):
+    name: str
+    url: str
+    scope: Optional[dict] = None
+
+
+class DatabaseIn(Base):
+    name: Optional[str] = None
+    url: Optional[str] = None
+
+
+class DatabaseOut(Base):
+    id: str
+    created: Optional[str] = None
+    updated: Optional[str] = None
+
+
+class GetDatabaseOut(Out):
+    data: DatabaseOut
+
+
+class GetDatabasesOut(Out):
+    data: List[DatabaseOut]
+
+
+class AddDatabaseOut(GetDatabaseOut):
+    pass
+
+
+class SetDatabaseIn(In):
+    data: DatabaseIn
+
+
+class AddDatabaseIn(In):
+    data: Base
+
+
+class SetDatabaseOut(GetDatabaseOut):
+    pass
+
+
+class EditDatabaseIn(SetDatabaseIn):
+    pass
+
+
+class EditDatabaseOut(SetDatabaseOut):
+    pass
+
+
+class DeleteDatabaseOut(Out):
+    data: str
 
 
 @api.get(f"/{VERSION}/{ENDPOINT}/", response_model=GetDatabasesOut)
@@ -82,6 +129,3 @@ async def delete_database(id: str, db: Storage = Depends(get_internal_database))
     result = await model.delete_record(id)
     # return 204 (No Content) with empty body
     return {}
-
-
-loaded = 1

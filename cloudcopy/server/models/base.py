@@ -5,7 +5,6 @@ from functools import wraps
 from copy import deepcopy
 from cloudcopy.server.utils import is_uuid, now
 from adbc.store import Table
-from adbc.query import Query
 from adbc.zql.parsers.base import get_parser
 from adbc.zql.dialect import Backend
 from adbc.generators import G
@@ -14,7 +13,7 @@ from adbc.generators import G
 class ModelMethodProxy:
     def __init__(self, model, method, leveled=False, level=None):
         self.model = model
-        self.query = self.model._query
+        self._model = self.model._model
         self.method = method
         self.leveled = leveled
         self.level = level
@@ -37,13 +36,14 @@ class ModelMethodProxy:
     def __call__(self, *args, **kwargs):
         if self.leveled:
             args = [self.level] + list(args)
-            query = getattr(self.query, "_{}".format(self.method))(*args, **kwargs)
+            query = getattr(self._model, "_{}".format(self.method))(*args, **kwargs)
         else:
-            query = getattr(self.query, self.method)(*args, **kwargs)
+            query = getattr(self._model, self.method)(*args, **kwargs)
+
         return self.model.__class__(query)
 
 
-class Model(object):
+class Model:
     COLUMN_EXTRAS = {'uuid', 'created', 'updated', 'json'}
     COMMAND_FUNCTIONS = {
         'add',
@@ -69,9 +69,9 @@ class Model(object):
         'sort',
         'join'
     }
-    def __init__(self, query):
-        self._query = query
-        self._database = self._query.database
+    def __init__(self, model):
+        self._model = model
+        self._database = self._model.database
 
     @property
     def id_field(self):
@@ -118,7 +118,7 @@ class Model(object):
             post_command = getattr(self, f'post_{key}', None)
             pre = getattr(self, 'pre', None)
             post = getattr(self, 'post', None)
-            query = self._query
+            query = self._model
             command = getattr(query, key)
             values = None
             if not (pre or post or pre_command or post_command):
@@ -164,7 +164,7 @@ class Model(object):
             return result
         except KeyError:
             # if no own property, fallback to query
-            return getattr(self._query, key)
+            return getattr(self._model, key)
 
     @classmethod
     async def initialize(cls, db):
