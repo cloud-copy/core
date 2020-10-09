@@ -12,11 +12,13 @@ class Workflow(Model):
     columns = {
         'id': {
             'type': 'text',
-            'primary': True
+            'primary': True,
+            'uuid': True,
             # static UUID
         },
         'steps': {
             'type': 'text',
+            'json': True,
             # JSON array of steps:
             # step:
             #   source: str (Database ID)
@@ -25,10 +27,11 @@ class Workflow(Model):
         },
         'max_retries': {
             'type': 'integer',
-            'default': -1,
+            'default': 0,
             # number of times to retry a task
-            # 0 means do not retry
-            # -1 means retry indefinitely (default)
+            # 0 means do not retry (retry)
+            # 1 means retry once only
+            # -1 means retry indefinitely
         },
         'recent_errors': {
             'type': 'integer',
@@ -49,7 +52,8 @@ class Workflow(Model):
         },
         'schedule': {
             'type': 'text',
-            'null': True
+            'null': True,
+            'json': True
             # JSON object with either "rate" or "cron" key:
             # rate: "5 minutes" (or seconds, hours, days)
             # cron: ["*", "*", "*", "*", "0", "1"]
@@ -78,9 +82,11 @@ class Workflow(Model):
         },
         'created': {
             'type': 'text',
+            'created': True
         },
         'updated': {
             'type': 'text',
+            'updated': True
         }
     }
 
@@ -109,3 +115,11 @@ class Workflow(Model):
                         'url', value
                     )
         return steps
+
+    async def post_add(self, query, data):
+        result = None
+        parent = super()
+        if hasattr(parent, 'post_add'):
+            result = await parent.post_add(query, data)
+        print('added workflow', query.data('values'))
+        return result if result else None

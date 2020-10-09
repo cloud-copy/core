@@ -76,6 +76,7 @@ class DeleteDatabaseOut(Out):
     data: str
 
 
+
 @api.get(f"/{VERSION}/{ENDPOINT}/", response_model=GetDatabasesOut)
 async def get_databases(db: Storage = Depends(get_internal_database)):
     model = await Database.initialize(db)
@@ -91,8 +92,8 @@ async def get_database(id: str, db: Storage = Depends(get_internal_database)):
 
 
 @api.post(f"/{VERSION}/{ENDPOINT}/", response_model=AddDatabaseOut, status_code=201)
-async def add_database(item: AddDatabaseIn, db: Storage = Depends(get_internal_database)):
-    item = from_request(item)
+async def add_database(data: AddDatabaseIn, db: Storage = Depends(get_internal_database)):
+    item = from_request(data)
 
     model = await Database.initialize(db)
     record = model.to_record(item)
@@ -102,8 +103,8 @@ async def add_database(item: AddDatabaseIn, db: Storage = Depends(get_internal_d
 
 
 @api.put(f"/{VERSION}/{ENDPOINT}/{{id}}/", response_model=SetDatabaseOut)
-async def set_database(id: str, item: SetDatabaseIn, db: Storage = Depends(get_internal_database)):
-    item = from_request(item)
+async def set_database(id: str, data: SetDatabaseIn, db: Storage = Depends(get_internal_database)):
+    item = from_request(data)
 
     model = await Database.initialize(db)
     record = model.to_record(item)
@@ -113,8 +114,8 @@ async def set_database(id: str, item: SetDatabaseIn, db: Storage = Depends(get_i
 
 
 @api.patch(f'/{VERSION}/{ENDPOINT}/{{id}}/')
-async def edit_database(id: str, item: EditDatabaseIn, db: Storage = Depends(get_internal_database)):
-    item = from_request(item, patch=True)
+async def edit_database(id: str, data: EditDatabaseIn, db: Storage = Depends(get_internal_database)):
+    item = from_request(data, patch=True)
 
     model = await Database.initialize(db)
     record = model.to_record(item)

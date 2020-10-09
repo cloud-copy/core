@@ -240,6 +240,11 @@ class Model:
     async def post_get(self, query, result):
         final = []
         changes = False
+        is_json = False
+        if isinstance(result, str):
+            result = json.loads(result)
+            is_json = True
+
         for row in result:
             post = await self.post_one(query, row)
             if post is None:
@@ -247,6 +252,9 @@ class Model:
             else:
                 changes = True
                 final.append(post)
+
+        if is_json and final and changes:
+            final = json.dumps(final)
         return final if changes else None
 
     async def post_one(self, query, result):
@@ -262,6 +270,11 @@ class Model:
             # many fields
             final = {}
             changes = False
+            is_json = False
+            if isinstance(result, str):
+                result = json.loads(result)
+                is_json = True
+
             for key in result.keys():
                 value = result[key]
                 column = self.columns.get(key)
@@ -270,6 +283,8 @@ class Model:
                     changes = True
                 final[key] = value
             # no changes -> return None
+            if is_json and final and changes:
+                final = json.dumps(final)
             return final if changes else None
 
     def is_id(self, value):
@@ -315,6 +330,7 @@ class Model:
     async def get_record(
         self,
         id: str,
+        json=False
     ):
         """Get one record"""
         key = self.id_field if self.is_id(id) else self.name_field
@@ -324,7 +340,7 @@ class Model:
             )
 
         query = self.where({"=": [key, f"'{id}'"]})
-        return await query.one()
+        return await query.one(json=json)
 
     async def add_record(
         self,

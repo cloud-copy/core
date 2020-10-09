@@ -7,12 +7,12 @@ from pydantic import BaseModel
 from fastapi import Depends
 
 from cloudcopy.server.api import api
-from cloudcopy.server.models import Database
+from cloudcopy.server.models import Workflow
 from cloudcopy.server.storage import get_internal_database
 from ...utils import from_request, to_response
 
 VERSION = 'v0'
-ENDPOINT = 'databases'
+ENDPOINT = 'workflows'
 
 
 class In(BaseModel):
@@ -23,89 +23,101 @@ class Out(BaseModel):
     pass
 
 
-class Base(BaseModel):
+class WorkflowBase(BaseModel):
     name: str
-    url: str
-    scope: Optional[dict] = None
+    steps: list
+    max_retries: int = 0
+    recent_errors: int = 0
+    timeout: int = 0
+    schedule: Optional[dict] = None
+    running_jobs: int = 0
+    concurrency: int = 0
+    cooldown: int = 0
 
 
-class DatabaseIn(Base):
+class WorkflowIn(WorkflowBase):
     name: Optional[str] = None
-    url: Optional[str] = None
+    steps: Optional[list] = None
+    max_retries: Optional[int] = 0
+    recent_errors: Optional[int] = 0
+    timeout: Optional[int] = 0
+    running_jobs: Optional[int] = 0
+    concurrency: Optional[int] = 0
+    cooldown: Optional[int] = 0
 
 
-class DatabaseOut(Base):
+class WorkflowOut(WorkflowBase):
     id: str
-    created: Optional[str] = None
-    updated: Optional[str] = None
+    created: str
+    updated: str
 
 
-class GetDatabaseOut(Out):
-    data: DatabaseOut
+class GetWorkflowOut(Out):
+    data: WorkflowOut
 
 
-class GetDatabasesOut(Out):
-    data: List[DatabaseOut]
+class GetWorkflowsOut(Out):
+    data: List[WorkflowOut]
 
 
-class AddDatabaseOut(GetDatabaseOut):
+class AddWorkflowOut(GetWorkflowOut):
     pass
 
 
-class SetDatabaseIn(In):
-    data: DatabaseIn
+class SetWorkflowIn(In):
+    data: WorkflowIn
 
 
-class AddDatabaseIn(In):
-    data: Base
+class AddWorkflowIn(In):
+    data: WorkflowBase
 
 
-class SetDatabaseOut(GetDatabaseOut):
+class SetWorkflowOut(GetWorkflowOut):
     pass
 
 
-class EditDatabaseIn(SetDatabaseIn):
+class EditWorkflowIn(SetWorkflowIn):
     pass
 
 
-class EditDatabaseOut(SetDatabaseOut):
+class EditWorkflowOut(SetWorkflowOut):
     pass
 
 
-class DeleteDatabaseOut(Out):
+class DeleteWorkflowOut(Out):
     data: str
 
 
-@api.get(f"/{VERSION}/{ENDPOINT}/", response_model=GetDatabasesOut)
-async def get_databases(db: Storage = Depends(get_internal_database)):
-    model = await Database.initialize(db)
+@api.get(f"/{VERSION}/{ENDPOINT}/", response_model=GetWorkflowsOut)
+async def get_workflows(db: Storage = Depends(get_internal_database)):
+    model = await Workflow.initialize(db)
     result = await model.get()
     return to_response(result)
 
 
-@api.get(f"/{VERSION}/{ENDPOINT}/{{id}}/", response_model=GetDatabaseOut)
-async def get_database(id: str, db: Storage = Depends(get_internal_database)):
-    model = await Database.initialize(db)
+@api.get(f"/{VERSION}/{ENDPOINT}/{{id}}/", response_model=GetWorkflowOut)
+async def get_workflow(id: str, db: Storage = Depends(get_internal_database)):
+    model = await Workflow.initialize(db)
     result = await model.get_record(id)
     return to_response(result)
 
 
-@api.post(f"/{VERSION}/{ENDPOINT}/", response_model=AddDatabaseOut, status_code=201)
-async def add_database(item: AddDatabaseIn, db: Storage = Depends(get_internal_database)):
+@api.post(f"/{VERSION}/{ENDPOINT}/", response_model=AddWorkflowOut, status_code=201)
+async def add_workflow(item: AddWorkflowIn, db: Storage = Depends(get_internal_database)):
     item = from_request(item)
 
-    model = await Database.initialize(db)
+    model = await Workflow.initialize(db)
     record = model.to_record(item)
     result = await model.add_record(record)
 
     return to_response(result)
 
 
-@api.put(f"/{VERSION}/{ENDPOINT}/{{id}}/", response_model=SetDatabaseOut)
-async def set_database(id: str, item: SetDatabaseIn, db: Storage = Depends(get_internal_database)):
+@api.put(f"/{VERSION}/{ENDPOINT}/{{id}}/", response_model=SetWorkflowOut)
+async def set_workflow(id: str, item: SetWorkflowIn, db: Storage = Depends(get_internal_database)):
     item = from_request(item)
 
-    model = await Database.initialize(db)
+    model = await Workflow.initialize(db)
     record = model.to_record(item)
     result = await model.edit_record(id, record)
 
@@ -113,10 +125,10 @@ async def set_database(id: str, item: SetDatabaseIn, db: Storage = Depends(get_i
 
 
 @api.patch(f'/{VERSION}/{ENDPOINT}/{{id}}/')
-async def edit_database(id: str, item: EditDatabaseIn, db: Storage = Depends(get_internal_database)):
+async def edit_workflow(id: str, item: EditWorkflowIn, db: Storage = Depends(get_internal_database)):
     item = from_request(item, patch=True)
 
-    model = await Database.initialize(db)
+    model = await Workflow.initialize(db)
     record = model.to_record(item)
     result = await model.edit_record(id, record)
 
@@ -124,8 +136,8 @@ async def edit_database(id: str, item: EditDatabaseIn, db: Storage = Depends(get
 
 
 @api.delete(f'/{VERSION}/{ENDPOINT}/{{id}}/', status_code=204)
-async def delete_database(id: str, db: Storage = Depends(get_internal_database)):
-    model = await Database.initialize(db)
+async def delete_workflow(id: str, db: Storage = Depends(get_internal_database)):
+    model = await Workflow.initialize(db)
     result = await model.delete_record(id)
     # return 204 (No Content) with empty body
     return {}
