@@ -7,16 +7,16 @@ from adbc.testing import setup_test_database
 from httpx import AsyncClient
 from tests.utils import override_settings
 from cloudcopy.server.config import settings
-from cloudcopy.server.app import app
+from cloudcopy.server.app import api as app
 from cloudcopy.server.storage import get_internal_database
 
 
 @pytest.mark.asyncio
 async def test_server():
     with override_settings(
-        INTERNAL_DATABASE_URL=settings.INTERNAL_DATABASE_URL + '.test'
+        ASYNC_TASKS=False,
+        INTERNAL_DATABASE_FILE=settings.INTERNAL_DATABASE_FILE + '.test'
     ):
-        db = None
         try:
             async with AsyncExitStack() as stack:
                 client = await stack.enter_async_context(AsyncClient(app=app, base_url='http://test'))
@@ -29,7 +29,6 @@ async def test_server():
                 test2 = await stack.enter_async_context(
                     setup_test_database('test2', url='file:test2')
                 )
-                db = await get_internal_database(reset=True)
                 databases = [
                     {
                         'name': 'test0',
@@ -39,6 +38,10 @@ async def test_server():
                                 'main': True
                             }
                         }
+                    },
+                    {
+                        'name': 'test2',
+                        'url': 'file:test2'
                     },
                     {
                         'name': 'test3',
@@ -125,13 +128,6 @@ async def test_server():
                 assert response['url'] == 'file:test1'
                 assert response['updated'] >= updated
 
-                # DELETE (by newly changed name)
-                response = await client.delete(f'/v0/databases/test1/')
-                assert response.status_code == 204
-
-                response = await client.get('/v0/databases/')
-                assert len(response.json()['data']) == 1
-
                 # Workflows
                 response = await client.get(
                     f'/v0/workflows'
@@ -142,6 +138,9 @@ async def test_server():
 
                 workflows = [{
                     "name": "diff-0-1",
+                    "schedule": {
+                        "delay": "1 minute"
+                    },
                     "steps": [{
                         "type": "compare",
                         "source": databases[0]['id'],  # by id (test0)
@@ -166,7 +165,17 @@ async def test_server():
                         assert response[k] == v
                     workflow['id'] = response['id']
 
+                # DELETE (by newly changed name)
+                response = await client.delete(f'/v0/databases/test1/')
+                assert response.status_code == 204
+
+                response = await client.get('/v0/databases/')
+                assert len(response.json()['data']) == len(databases) - 1
         finally:
             # clean up test sqlite DB
-            if db and os.path.exists(db.host.name):
-                os.remove(db.host.name)
+            if os.path.exists(settings.INTERNAL_DATABASE_FILE):
+                os.remove(settings.INTERNAL_DATABASE_FILE)
+            # uncomment if not using async tasks to clean up test DB
+
+            # if os.path.exists(settings.TASK_DATABASE_FILE):
+            #    os.remove(settings.TASK_DATABASE_FILE)

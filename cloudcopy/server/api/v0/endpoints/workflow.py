@@ -27,6 +27,7 @@ class WorkflowBase(BaseModel):
     name: str
     steps: list
     max_retries: int = 0
+    paused: int = 0
     recent_errors: int = 0
     timeout: int = 0
     schedule: Optional[dict] = None
@@ -36,6 +37,7 @@ class WorkflowBase(BaseModel):
 
 
 class WorkflowIn(WorkflowBase):
+    paused: Optional[int] = 0
     name: Optional[str] = None
     steps: Optional[list] = None
     max_retries: Optional[int] = 0

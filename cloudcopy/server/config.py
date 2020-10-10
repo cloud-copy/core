@@ -1,8 +1,12 @@
 import os
-from cloudcopy.common.utils import Settings
+from cloudcopy.common.utils import Settings, to_boolean
 
-BASE_PATH = os.environ.get(
-    'CLCP_PATH', os.path.expanduser('~/.clcp')
+ASYNC_TASKS = to_boolean(
+    os.environ.get('ASYNC_TASKS', True)
+)
+
+BASE_PATH = os.path.expanduser(
+    os.environ.get('CLCP_PATH', '~/.clcp')
 )
 
 # INTERNAL_DATABASE_FILE: path to server's SQLite file
@@ -10,7 +14,6 @@ BASE_PATH = os.environ.get(
 INTERNAL_DATABASE_FILE = os.environ.get(
     'CLCP_INTERNAL_DATABASE_FILE', os.path.join(BASE_PATH, 'data.db')
 )
-INTERNAL_DATABASE_URL = f'file:{INTERNAL_DATABASE_FILE}'
 TASK_DATABASE_FILE = os.environ.get(
     'CLCP_TASK_DATBASE_FILE', os.path.join(BASE_PATH, 'tasks.db')
 )

@@ -5,7 +5,7 @@ develop = true
 name = "adbc"
 optional = false
 python-versions = "^3.7"
-version = "0.2.7"
+version = "0.2.8"
 
 [package.dependencies]
 aiobotocore = "^0.12.0"
@@ -409,6 +409,18 @@ http2 = ["h2 (>=3.0.0,<4.0.0)"]
 
 [[package]]
 category = "main"
+description = "huey, a little task queue"
+name = "huey"
+optional = false
+python-versions = "*"
+version = "2.3.0"
+
+[package.extras]
+backends = ["redis (>=3.0.0)"]
+redis = ["redis (>=3.0.0)"]
+
+[[package]]
+category = "main"
 description = "Internationalized Domain Names in Applications (IDNA)"
 name = "idna"
 optional = false
@@ -581,6 +593,14 @@ name = "pastel"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 version = "0.2.1"
+
+[[package]]
+category = "main"
+description = "a little orm"
+name = "peewee"
+optional = false
+python-versions = "*"
+version = "3.13.3"
 
 [[package]]
 category = "main"
@@ -976,7 +996,7 @@ docs = ["sphinx", "jaraco.packaging (>=3.2)", "rst.linker (>=1.9)"]
 testing = ["pytest (>=3.5,<3.7.3 || >3.7.3)", "pytest-checkdocs (>=1.2.3)", "pytest-flake8", "pytest-cov", "jaraco.test (>=3.2.0)", "jaraco.itertools", "func-timeout", "pytest-black (>=0.3.7)", "pytest-mypy"]
 
 [metadata]
-content-hash = "ef336414f7030787cac20e3b9d334ec0167f5876c546e2aab972cb10ca8eba8e"
+content-hash = "6a9781f667dbc73ecb9f45bf951fcb44f32989d449ec12d60a2304fb1ba5379b"
 python-versions = "^3.7"
 
 [metadata.files]
@@ -1208,6 +1228,9 @@ httpx = [
     {file = "httpx-0.15.5-py3-none-any.whl", hash = "sha256:02326f2d3c61133db31e4b88dd3432479b434e52a68d813eab6db930f13611ea"},
     {file = "httpx-0.15.5.tar.gz", hash = "sha256:254b371e3880a8e2387bf9ead6949bac797bd557fda26eba19a6153a0c06bd2b"},
 ]
+huey = [
+    {file = "huey-2.3.0.tar.gz", hash = "sha256:76978840a875607cd77c283c4ebf3ea5071b2ec06a1ac428d63be0d88f1e7070"},
+]
 idna = [
     {file = "idna-2.10-py2.py3-none-any.whl", hash = "sha256:b97d804b1e9b523befed77c48dacec60e6dcb0b5391d57af6a65a312a90648c0"},
     {file = "idna-2.10.tar.gz", hash = "sha256:b307872f855b18632ce0c21c5e45be78c0ea7ae4c15c828c20788b26921eb3f6"},
@@ -1281,6 +1304,9 @@ parso = [
 pastel = [
     {file = "pastel-0.2.1-py2.py3-none-any.whl", hash = "sha256:4349225fcdf6c2bb34d483e523475de5bb04a5c10ef711263452cb37d7dd4364"},
     {file = "pastel-0.2.1.tar.gz", hash = "sha256:e6581ac04e973cac858828c6202c1e1e81fee1dc7de7683f3e1ffe0bfd8a573d"},
+]
+peewee = [
+    {file = "peewee-3.13.3.tar.gz", hash = "sha256:1269a9736865512bd4056298003aab190957afe07d2616cf22eaf56cb6398369"},
 ]
 pexpect = [
     {file = "pexpect-4.8.0-py2.py3-none-any.whl", hash = "sha256:0b48a55dcb3c05f3329815901ea4fc1537514d6ba867a152b581d69ae3710937"},

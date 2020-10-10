@@ -15,7 +15,7 @@ async def get_internal_database(reset=False):
         # try to get a handle on the local database
         database = Database(
             scope=scope,
-            url=settings.INTERNAL_DATABASE_URL,
+            url=f'file:{settings.INTERNAL_DATABASE_FILE}',
             verbose=settings.DEBUG
         )
         # try to apply schema changes, if any

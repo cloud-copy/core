@@ -69,6 +69,7 @@ class Model:
         'sort',
         'join'
     }
+    DIFFING = True
     def __init__(self, model):
         self._model = model
         self._database = self._model.database
@@ -224,8 +225,9 @@ class Model:
         updated = self.updated_field
         created = self.created_field
 
-        if not updated or not created:
+        if not updated and not created:
             return
+
         data = query.data('values')
 
         if not isinstance(data, list):
@@ -234,8 +236,10 @@ class Model:
         # set created to now
         time = now()
         for d in data:
-            d[created] = time
-            d[updated] = time
+            if created:
+                d[created] = time
+            if updated:
+                d[updated] = time
 
     async def post_get(self, query, result):
         final = []
@@ -308,7 +312,7 @@ class Model:
 
     async def get_field(self, field, id):
         """Get field value by key"""
-        key = self.id_field if self.is_id(value) else self.name_field
+        key = self.id_field if self.is_id(id) else self.name_field
         if not key:
             raise ValueError(
                 f'Cannot get field "{field}", id or name field is missing'
@@ -347,6 +351,12 @@ class Model:
         record: dict,
     ):
         """Add one record"""
+        pre = getattr(self, 'pre_add_record', None)
+        post = getattr(self, 'post_add_record', None)
+
+        if pre:
+            await pre(record)
+
         id_field = self.id_field
         name_field = self.name_field
 
@@ -371,10 +381,19 @@ class Model:
         # SQLite does not support RETURNING so we cannot do this in one statement
         # for flexibility, support either ID or name
         if id is None and name is None:
-            raise ValueError('Must pass either ID or name to create record')
+            raise ValueError(
+                f'Add record failed: must pass either {self.id_field} or {self.name_field}'
+            )
 
         key, value = ('id', id) if id is not None else ('name', name)
-        return await self.where({"=": [key, f"'{value}'"]}).one()
+        result = await self.where({"=": [key, f"'{value}'"]}).one()
+
+        new_result = None
+        if post:
+            new_result = await post(record, result)
+            if new_result:
+                result = new_result
+        return result
 
 
     async def edit_record(
@@ -383,31 +402,44 @@ class Model:
         record: dict,
     ):
         """Edit one record"""
+        pre = getattr(self, 'pre_set_record', None)
+        post = getattr(self, 'post_set_record', None)
+
         query = self.values(record)
         id_field = self.id_field
         is_id = self.is_id(id)
         key = id_field if is_id else self.name_field
         if not key:
             raise ValueError(
-                f'Cannot edit record "{id}", id or name field is missing'
+                f'Edit record failed: no ID or name field on model'
             )
 
         where = {'=': [key, f"'{id}'"]}
-        if is_id:
-            # use passed in ID to refetch
-            real_id = id
-        else:
-            # get real ID first to refetch
-            # this avoids a corner case where we are changing the name
-            # and keying the update by name, not ID
-            real_id = await self.where(where).field(id_field).one()
+        old = None
+        if pre or post and self.DIFFING:
+            # look up the current record's values
+            # so that handlers can take it into account
+            old = await self.where(where).one()
+
+        if pre:
+            await pre(id, old, record)
 
         # update results
         await self.values(record).where(where).set()
-        # refetch from DB for triggered value updates
-        # always refetch by ID because other fields like name can change
-        return await self.where({'=': [id_field, real_id]}).one()
+        if not is_id and self.name_field in record:
+            # refetching by name field, and it just changed
+            new_id = record[self.name_field]
+            where = {'=': [key, f"'{new_id}'"]}
 
+        # refetch the row
+        result = await self.where(where).one()
+
+        new_result = None
+        if post:
+            new_result = await post(id, old, record, result)
+            if new_result:
+                result = new_result
+        return result
 
     async def delete_record(
         self,
@@ -417,7 +449,7 @@ class Model:
         key = self.id_field if self.is_id(id) else self.name_field
         if not key:
             raise ValueError(
-                f'Cannot edit record "{id}", id or name field is missing'
+                f'Delete record failed: no ID or name field on model'
             )
         query = self.where({"=": [key, f"'{id}'"]})
         await query.delete()

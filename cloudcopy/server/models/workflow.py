@@ -2,7 +2,7 @@ import json
 
 from adbc.generators import G
 
-from cloudcopy.server.utils import is_uuid, is_url
+from cloudcopy.server.utils import is_uuid, is_url, to_seconds
 from .database import Database
 from .base import Model
 
@@ -15,6 +15,13 @@ class Workflow(Model):
             'primary': True,
             'uuid': True,
             # static UUID
+        },
+        'paused': {
+            'type': 'integer',
+            'default': 0,
+            # boolean
+            # 0 means not paused (default)
+            # 1 means paused (should not execute)
         },
         'steps': {
             'type': 'text',
@@ -60,6 +67,12 @@ class Workflow(Model):
             # if set, the workflow will be triggered on the schedule
             # if not set, the workflow can still be triggered manually
         },
+        'task_id': {
+            'type': 'text',
+            'null': True,
+            # UUID value of task ID
+            # representing the next scheduled invocation of this workflow
+        },
         'running_jobs': {
             'type': 'integer',
             'default': 0
@@ -90,15 +103,17 @@ class Workflow(Model):
         }
     }
 
-    async def resolve_steps(self, workflow):
+    async def resolve_steps(self, steps):
         """Get workflow.steps as an object
 
         Resolve all database references, either by ID or name
         """
+        if not steps:
+            return None
 
-        steps = json.loads(workflow['steps'])
+        steps = json.loads(steps) if isinstance(steps, str) else steps
         resolved = {}
-        Database = await Database.initialize(self.database)
+        db = await Database.initialize(self._database)
         for step in steps:
             # look for database references and resolve them
             for key in ('source', 'target'):
@@ -108,18 +123,56 @@ class Workflow(Model):
                 if is_url(value):
                     continue
                 if value in resolved:
-                    steps[key] = resolved[value]
+                    step[key] = resolved[value]
                 else:
                     # memoize lookups
-                    resolved[value] = steps[key] = await Database.get_field(
-                        'url', value
-                    )
+                    try:
+                        resolved[value] = step[key] = await db.get_field(
+                            'url', value
+                        )
+                    except Exception as e:
+                        raise ValueError(
+                            f'Error resolving {key} for step: {step}\nMessage: {e}'
+                        )
         return steps
 
-    async def post_add(self, query, data):
-        result = None
+
+    async def pre_add(self, query):
+        # validate steps
         parent = super()
-        if hasattr(parent, 'post_add'):
-            result = await parent.post_add(query, data)
-        print('added workflow', query.data('values'))
-        return result if result else None
+        if hasattr(parent, 'pre_add'):
+            # perform base manipulations/checks
+            await parent.pre_add(query)
+
+        # perform validation of "steps"
+        values = query.data('values')
+        if isinstance(values, list):
+            return await self.pre_add_many(values)
+        else:
+            return await self.pre_add_one(values)
+
+    async def pre_add_many(self, values):
+        for value in values:
+            await self.pre_add_one(value)
+
+    async def pre_add_one(self, values):
+        steps = values.get('steps')
+        await self.resolve_steps(steps)
+
+    async def post_add_record(self, record, result):
+        # IMPORTANT: this import deferred to avoid circular import
+        # between the co-dependent model and workflow
+        from cloudcopy.server.tasks.workflow import execute
+        id = result['id']
+        schedule = result['schedule']
+        task = None
+        if schedule:
+            if 'immediate' in schedule:
+                task = execute(id)
+            if 'delay' in schedule:
+                delay = to_seconds(schedule['delay'])
+                task = execute.schedule((id, ), delay=delay)
+            if task:
+                # save current task ID onto the workflow
+                # so that it can be revoked later
+                await self.key(id).values({'task_id': task.id}).set()

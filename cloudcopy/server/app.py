@@ -1,16 +1,16 @@
 import os
 
-from .api.loader import load
+from .api.loader import load as load_endpoints
+from .tasks.loader import load as load_tasks
+from .setup import setup_environment
 from .api.core import api
+from .tasks.core import app as tasks
 
 from cloudcopy.server.config import settings
-# loads FastAPI endpoints from .api...
-load()
 
-# initialization procedures
-# TODO: move to module
-os.makedirs(settings.BASE_PATH, exist_ok=True)
-os.makedirs(settings.LOG_PATH, exist_ok=True)
-
-# expose the FastAPI instance as cloudcopy.server.app:app for convenience
-app = api
+# loads FastAPI endpoints
+load_endpoints()
+# loads Huey tasks
+load_tasks()
+# create required directory
+setup_environment()

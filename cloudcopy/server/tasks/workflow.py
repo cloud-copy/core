@@ -6,7 +6,7 @@ import aiofiles
 from adbc.workflow import Workflow as Runner
 
 from cloudcopy.server.tasks.core import app
-from cloupcopy.server.utils import get_log_directory, get_uuid, now
+from cloudcopy.server.utils import get_uuid, now
 from cloudcopy.server.storage import get_internal_database
 from cloudcopy.server.models import Job, Workflow
 from cloudcopy.server.config import settings
@@ -39,16 +39,19 @@ async def _execute(workflow_id: str):
     Workflow = await Workflow.initialize(db)
     Job = await Job.initialize(db)
 
+    # support key-by-name
+    key = Workflow.id_field if Workflow.is_id(workflow_id) else Workflow.name_field
     try:
-        workflow = await Workflow.key(workflow_id).one()
+        workflow = await Workflow.where(
+            {'=': [key, f'"{workflow_id}"']}
+        ).one()
     except Exception:
         # this workflow no longer exists
         # (deleted as this task was scheduled)
         # in this case we have nothing to log against
         return
 
-    id = get_uuid()
-    workflow_id = workflow['id']
+    job_id = get_uuid()
     concurrency = workflow['concurrency']
     running_jobs = workflow['running_jobs']
     # TODO: solve race condition:
@@ -57,7 +60,7 @@ async def _execute(workflow_id: str):
     if concurrency > 0 and running_jobs >= concurrency:
         # fail with concurrency error
         await Job.values({
-            'id': id,
+            'id': job_id,
             'workflow_id': workflow_id,
             'result': json.dumps({
                 'error': {
@@ -73,37 +76,31 @@ async def _execute(workflow_id: str):
 
     log_file = os.path.join(
         settings.LOG_PATH,
-        f"W_{workflow_id}_J_{id}.log"
+        f"W_{workflow_id}_J_{job_id}.log"
     )
 
-    await Job
-        .values({
-            'id': id,
+    await Job.values({
+            'id': job_id,
             'workflow_id': workflow_id,
             'log': log_file,
             'status': Job.STARTED,
             'started': now()
-        })
-        .add()
+        }).add()
+    job = await Job.key(job_id).one()
     # using the current value + 1
     # guarantees that running jobs will be incremented properly
     # even if this code were running in different threads
-    await Workflow
-        .key(workflow_id)
-        .values({
-            "running_jobs": {
-                '+': [
-                    "running_jobs",
-                    1
-                ]
-            }
-        })
-        .set()
-    job = await Job
-        .key(id)
-        .one()
+    await Workflow.key(workflow_id).values({
+        "running_jobs": {
+            '+': [
+                "running_jobs",
+                1
+            ]
+        }
+    }).set()
 
-    steps = await Workflow.resolve_steps(workflow)
+    steps = await Workflow.resolve_steps(workflow['steps'])
+    name = workflow['name']
     timeout = workflow['timeout']
     max_retries = workflow['max_retries']
     recent_errors = workflow['recent_errors']
@@ -113,7 +110,7 @@ async def _execute(workflow_id: str):
             verbose=settings.DEBUG
         )
         runner = Runner(
-            workflow['name'],
+            name,
             steps=steps,
             logger=logger
         )
@@ -142,10 +139,7 @@ async def _execute(workflow_id: str):
                 'completed': time
             }
             # update job
-            await Job
-                .key(id)
-                .values(values)
-                .set()
+            await Job.key(job_id).values(values).set()
 
             retry = False
             delay = 2 ** recent_errors
@@ -172,7 +166,7 @@ async def _execute(workflow_id: str):
                 )
 
 
-@app.task()
+@app.task(name='workflow-execute')
 def execute(workflow_id):
     result = asyncio.run(_execute(workflow_id))
     return result
