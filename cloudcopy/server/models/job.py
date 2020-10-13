@@ -25,7 +25,7 @@ class Job(Model):
         'workflow_id': {
             'type': 'text',
             'related': {
-                'to': 'database',
+                'to': 'workflow',
                 'by': 'id'
             },
         },
