@@ -11,6 +11,104 @@ from cloudcopy.server.config import settings
 from cloudcopy.server.storage import get_internal_database
 
 
+diff_0_1_result = {
+    'data': [{
+        'main': {
+            '-': {
+                'test1': {
+                    'columns': {
+                        'id': {
+                            'choices': None,
+                            'default': None,
+                            'null': True,
+                            'primary': True,
+                            'related': None,
+                            'sequence': True,
+                            'type': 'integer',
+                            'unique': False},
+                        'name': {
+                            'choices': None,
+                            'default': None,
+                             'null': True,
+                             'primary': False,
+                             'related': None,
+                             'sequence': False,
+                             'type': 'text',
+                             'unique': 'test1__name__uk'
+                        }
+                    },
+                    'constraints': {
+                        'test1__id__pk': {
+                            'check': None,
+                            'columns': ['id'],
+                            'deferrable': False,
+                            'deferred': False,
+                            'related_columns': None,
+                            'related_name': None,
+                            'type': 'primary'
+                        },
+                        'test1__name__uk': {
+                            'check': None,
+                            'columns': ['name'],
+                            'deferrable': False,
+                            'deferred': False,
+                            'related_columns': None,
+                            'related_name': None,
+                            'type': 'unique'
+                        }
+                    },
+                    'indexes': {},
+                    'rows': {
+                        'count': 10,
+                        'range': {
+                            'id': {
+                                'max':9,
+                                'min': 0
+                            }
+                        }
+                    },
+                    'type': 'table'
+                },
+            },
+            'sqlite_sequence': {
+                'rows': {
+                    'count': [3, 2],
+                    'range': {
+                        'name': {
+                            'min': ['test1','test2']
+                        },
+                        'seq': {
+                            'max': [9,4],
+                            'min': [9,4]
+                        }
+                    }
+                }
+            },
+            'test2': {
+                'rows': {
+                    'count': [10, 5],
+                    'range': {
+                        'id': {
+                            'max': [9, 4]
+                        }
+                    }
+                }
+            },
+            'test3': {
+                'rows': {
+                    'count': [10, 5],
+                    'range': {
+                        'id': {
+                            'max': [9, 4]
+                        }
+                    }
+                }
+            }
+        }
+    }]
+}
+
+
 async def setup_db(db, tables=('test', ), rows=10):
     for name in tables:
         await db.create_table(
@@ -45,7 +143,6 @@ async def setup_db(db, tables=('test', ), rows=10):
 async def test_server():
     with override_settings(
         ASYNC_TASKS=False,
-        DEBUG=True,
         INTERNAL_DATABASE_FILE=settings.INTERNAL_DATABASE_FILE + '.test'
     ):
         from cloudcopy.server.app import api as app, tasks
@@ -233,7 +330,7 @@ async def test_server():
                 data = data[0]
                 assert data['status'] == 'Succeeded'
                 result = data['result']
-                assert result == []
+                assert result == diff_0_1_result
         finally:
             # clean up test sqlite DB
             if os.path.exists(settings.INTERNAL_DATABASE_FILE):

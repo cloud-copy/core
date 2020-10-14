@@ -105,7 +105,6 @@ async def _execute(workflow_id: str):
     }).set()
 
     steps = await workflow_model.resolve_steps(workflow['steps'])
-    print('steps', steps)
     name = workflow['name']
     timeout = workflow['timeout']
     if not timeout:

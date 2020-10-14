@@ -136,7 +136,6 @@ class Workflow(Model):
                         raise ValueError(
                             f'Error resolving {key} for step: {step}\nMessage: {e}'
                         )
-        print(resolved)
         return steps
 
 
