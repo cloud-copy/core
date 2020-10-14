@@ -10,20 +10,17 @@ BASE_PATH = os.path.expanduser(
 )
 
 # INTERNAL_DATABASE_FILE: path to server's SQLite file
-# TODO: support cloud database
+# TODO: support cloud database in addition
 INTERNAL_DATABASE_FILE = os.environ.get(
     'CLCP_INTERNAL_DATABASE_FILE', os.path.join(BASE_PATH, 'data.db')
 )
-TASK_DATABASE_FILE = os.environ.get(
-    'CLCP_TASK_DATBASE_FILE', os.path.join(BASE_PATH, 'tasks.db')
-)
 
 DEBUG = os.environ.get(
-    'CLCP_DEBUG', True
+    'CLCP_DEBUG', False
 )
 
 # LOG_PATH: path to server's log files
-# TODO: support cloud logging
+# TODO: support cloud logging in addition
 LOG_PATH = os.environ.get(
     'CLCP_LOG_PATH', os.path.join(BASE_PATH, 'logs')
 )

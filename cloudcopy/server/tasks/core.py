@@ -6,6 +6,6 @@ from cloudcopy.server.config import settings
 # or added to an in-memory schedule registry
 app = SqliteHuey(
     'tasks',
-    filename=settings.TASK_DATABASE_FILE,
+    filename=settings.INTERNAL_DATABASE_FILE,
     immediate=not settings.ASYNC_TASKS
 )

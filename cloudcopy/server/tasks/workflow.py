@@ -1,8 +1,8 @@
+import os
 import json
 import asyncio
 import sys
 
-import aiofiles
 from adbc.workflow import Workflow as Runner
 
 from cloudcopy.server.tasks.core import app
@@ -12,7 +12,7 @@ from cloudcopy.server.models import Job, Workflow
 from cloudcopy.server.config import settings
 
 
-class WorkflowLogger(object):
+class Logger(object):
     def __init__(self, verbose=False, stdout=None):
         self.verbose = verbose
         self.stdout = stdout or sys.stdout
@@ -21,9 +21,10 @@ class WorkflowLogger(object):
         self._level = level
 
     def log(self, *args, **kwargs):
-        if verbose and self.stdout != sys.stdout:
+        if self.verbose and self.stdout != sys.stdout:
             print(*args)
-        self.stdout.write(*args)
+        arg = args[0]
+        self.stdout.write(f'{arg}\n')
         if hasattr(self.stdout, 'flush'):
             self.stdout.flush()
 
@@ -36,13 +37,16 @@ class WorkflowLogger(object):
 
 async def _execute(workflow_id: str):
     db = await get_internal_database()
-    Workflow = await Workflow.initialize(db)
-    Job = await Job.initialize(db)
+    workflow_model = await Workflow.initialize(db)
+    job_model = await Job.initialize(db)
 
     # support key-by-name
-    key = Workflow.id_field if Workflow.is_id(workflow_id) else Workflow.name_field
+    key = (
+        workflow_model.id_field if workflow_model.is_id(workflow_id)
+        else workflow_model.name_field
+    )
     try:
-        workflow = await Workflow.where(
+        workflow = await workflow_model.where(
             {'=': [key, f'"{workflow_id}"']}
         ).one()
     except Exception:
@@ -54,12 +58,13 @@ async def _execute(workflow_id: str):
     job_id = get_uuid()
     concurrency = workflow['concurrency']
     running_jobs = workflow['running_jobs']
+    time = now()
     # TODO: solve race condition:
     # implement a lock on WorkflowID
     # to prevent running_jobs from being double-incremented beyond the limit
     if concurrency > 0 and running_jobs >= concurrency:
         # fail with concurrency error
-        await Job.values({
+        await job_model.values({
             'id': job_id,
             'workflow_id': workflow_id,
             'result': json.dumps({
@@ -68,9 +73,9 @@ async def _execute(workflow_id: str):
                     'message': f'At concurrency limit: {concurrency}'
                 }
             }),
-            'status': Job.FAILED,
-            'started': now(),
-            'completed': now()
+            'status': job_model.FAILED,
+            'started': time,
+            'completed': time
         }).add()
         return
 
@@ -79,18 +84,18 @@ async def _execute(workflow_id: str):
         f"W_{workflow_id}_J_{job_id}.log"
     )
 
-    await Job.values({
-            'id': job_id,
-            'workflow_id': workflow_id,
-            'log': log_file,
-            'status': Job.STARTED,
-            'started': now()
-        }).add()
-    job = await Job.key(job_id).one()
+    await job_model.values({
+        'id': job_id,
+        'workflow_id': workflow_id,
+        'log': log_file,
+        'status': job_model.STARTED,
+        'started': time
+    }).add()
+    job = await job_model.key(job_id).one()
     # using the current value + 1
     # guarantees that running jobs will be incremented properly
     # even if this code were running in different threads
-    await Workflow.key(workflow_id).values({
+    await workflow_model.key(workflow_id).values({
         "running_jobs": {
             '+': [
                 "running_jobs",
@@ -99,26 +104,31 @@ async def _execute(workflow_id: str):
         }
     }).set()
 
-    steps = await Workflow.resolve_steps(workflow['steps'])
+    steps = await workflow_model.resolve_steps(workflow['steps'])
+    print('steps', steps)
     name = workflow['name']
     timeout = workflow['timeout']
+    if not timeout:
+        timeout = None
+
     max_retries = workflow['max_retries']
     recent_errors = workflow['recent_errors']
-    async with aiofiles.open(log_file, mode='w') as log:
-        logger = WorkflowLogger(
+    with open(log_file, 'w') as log:
+        logger = Logger(
             stdout=log,
             verbose=settings.DEBUG
         )
         runner = Runner(
             name,
             steps=steps,
-            logger=logger
+            logger=logger,
+            verbose=settings.DEBUG
         )
         success = False
         result = None
 
         try:
-            result = await asyncio.wait_for(runner.run(), timeout=timeout)
+            result = await asyncio.wait_for(runner.execute(), timeout=timeout)
             success = True
         except Exception as e:
             result = {
@@ -130,16 +140,16 @@ async def _execute(workflow_id: str):
             recent_errors += 1
         finally:
             # update job with status and completion time
-            status = Job.SUCCEEDED if success else Job.FAILED
+            status = job_model.SUCCEEDED if success else job_model.FAILED
             time = now()
             values = {
-                'result': json.dumps(result),
+                'result': json.dumps({'data': result}),
                 'status': status,
                 'updated': time,
                 'completed': time
             }
             # update job
-            await Job.key(job_id).values(values).set()
+            await job_model.key(job_id).values(values).set()
 
             retry = False
             delay = 2 ** recent_errors
@@ -151,7 +161,7 @@ async def _execute(workflow_id: str):
             else:
                 # reset recent_errors
                 recent_errors = 0
-            await Workflow.key(workflow_id).values({
+            await workflow_model.key(workflow_id).values({
                 'recent_errors': recent_errors,
                 'running_jobs': {
                     '-': [

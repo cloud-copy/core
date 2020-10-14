@@ -11,16 +11,13 @@ class Job(Model):
     columns = {
         'id': {
             'type': 'text',
-            'primary': True
+            'primary': True,
+            'uuid': True
         },
         'status': {
             'type': 'text',
             'default': f'`{QUEUED}`',
             'choices': STATUS_CHOICES
-        },
-        'name': {
-            'unique': True,
-            'type': 'text'
         },
         'workflow_id': {
             'type': 'text',
@@ -31,9 +28,11 @@ class Job(Model):
         },
         'created': {
             'type': 'text',
+            'created': True
         },
         'updated': {
             'type': 'text',
+            'updated': True
         },
         'started': {
             'type': 'text',
@@ -45,7 +44,8 @@ class Job(Model):
         },
         'result': {
             'type': 'text',
-            'null': True
+            'null': True,
+            'json': True
         },
         'completed': {
             'type': 'text',

@@ -266,7 +266,7 @@ class Model:
         if field:
             # one field's worth of data
             column = self.columns.get(field)
-            if column.get('json'):
+            if isinstance(result, str) and column.get('json'):
                 return json.loads(result)
             # no changes -> return None
             return None
@@ -282,7 +282,10 @@ class Model:
             for key in result.keys():
                 value = result[key]
                 column = self.columns.get(key)
-                if column.get('json'):
+                if not column:
+                    raise ValueError(f'No column definition for "{key}" ({dict(result)})')
+
+                if isinstance(value, str) and column.get('json'):
                     value = json.loads(value)
                     changes = True
                 final[key] = value

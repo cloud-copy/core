@@ -3,6 +3,7 @@ import json
 from adbc.generators import G
 
 from cloudcopy.server.utils import is_uuid, is_url, to_seconds
+from cloudcopy.server.config import settings
 from .database import Database
 from .base import Model
 
@@ -127,13 +128,15 @@ class Workflow(Model):
                 else:
                     # memoize lookups
                     try:
-                        resolved[value] = step[key] = await db.get_field(
+                        step[key] = await db.get_field(
                             'url', value
                         )
+                        resolved[value] = step[key]
                     except Exception as e:
                         raise ValueError(
                             f'Error resolving {key} for step: {step}\nMessage: {e}'
                         )
+        print(resolved)
         return steps
 
 
@@ -162,13 +165,18 @@ class Workflow(Model):
     async def post_add_record(self, record, result):
         # IMPORTANT: this import deferred to avoid circular import
         # between the co-dependent model and workflow
-        from cloudcopy.server.tasks.workflow import execute
+        from cloudcopy.server.tasks.workflow import execute, _execute
+
         id = result['id']
         schedule = result['schedule']
         task = None
         if schedule:
-            if 'immediate' in schedule:
-                task = execute(id)
+            if schedule.get('immediate'):
+                if settings.ASYNC_TASKS:
+                    task = execute(id)
+                else:
+                    # running in test mode
+                    task = await _execute(id)
             if 'delay' in schedule:
                 delay = to_seconds(schedule['delay'])
                 task = execute.schedule((id, ), delay=delay)
