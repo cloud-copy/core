@@ -1,9 +1,10 @@
-from .models import Database
+from .models import Database, Workflow, Job
 
 
 def get_schema():
-    return {
-        'main': {
-            Database.name: Database.get_schema()
-        }
-    }
+    """Get application model schema"""
+    main = {}
+    for model in (Database, Workflow, Job):
+        main[model.name] = model.get_table_schema()
+    schema = {'main': main}
+    return schema

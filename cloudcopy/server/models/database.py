@@ -1,5 +1,5 @@
 from .base import Model
-from adbc.generators import G
+from cloudcopy.server.utils import is_uuid, now
 
 
 class Database(Model):
@@ -7,7 +7,8 @@ class Database(Model):
     columns = {
         'id': {
             'type': 'text',
-            'primary': True
+            'primary': True,
+            'uuid': True
         },
         'url': {
             'type': 'text',
@@ -18,6 +19,15 @@ class Database(Model):
         },
         'scope': {
             'type': 'text',
-            'null': True
-        }
+            'null': True,
+            'json': True
+        },
+        'created': {
+            'type': 'text',
+            'created': True
+        },
+        'updated': {
+            'type': 'text',
+            'updated': True
+        },
     }
