@@ -145,10 +145,10 @@ async def test_server():
         ASYNC_TASKS=False,
         INTERNAL_DATABASE_FILE=settings.INTERNAL_DATABASE_FILE + '.test'
     ):
-        from cloudcopy.server.app import api as app, tasks
+        from cloudcopy.server.app import server, worker
         try:
             async with AsyncExitStack() as stack:
-                client = await stack.enter_async_context(AsyncClient(app=app, base_url='http://test'))
+                client = await stack.enter_async_context(AsyncClient(app=server, base_url='http://test'))
                 test0 = await stack.enter_async_context(
                     setup_test_database('test0', url='file:test0')
                 )
@@ -314,7 +314,7 @@ async def test_server():
                 immediate_workflow = workflows[0]
                 delayed_workflow = workflows[1]
 
-                scheduled = tasks.scheduled()
+                scheduled = worker.scheduled()
 
                 assert len(scheduled) == 1
                 assert scheduled[0].name == 'workflow-execute'
