@@ -6,7 +6,7 @@ from adbc.store import Database as Storage
 from pydantic import BaseModel
 from fastapi import Depends
 
-from cloudcopy.server.api import api
+from cloudcopy.server.api import server
 from cloudcopy.server.models import Database
 from cloudcopy.server.storage import get_internal_database
 from ...utils import from_request, to_response
@@ -77,21 +77,21 @@ class DeleteDatabaseOut(Out):
 
 
 
-@api.get(f"/{VERSION}/{ENDPOINT}/", response_model=GetDatabasesOut)
+@server.get(f"/{VERSION}/{ENDPOINT}/", response_model=GetDatabasesOut)
 async def get_databases(db: Storage = Depends(get_internal_database)):
     model = await Database.initialize(db)
     result = await model.get()
     return to_response(result)
 
 
-@api.get(f"/{VERSION}/{ENDPOINT}/{{id}}/", response_model=GetDatabaseOut)
+@server.get(f"/{VERSION}/{ENDPOINT}/{{id}}/", response_model=GetDatabaseOut)
 async def get_database(id: str, db: Storage = Depends(get_internal_database)):
     model = await Database.initialize(db)
     result = await model.get_record(id)
     return to_response(result)
 
 
-@api.post(f"/{VERSION}/{ENDPOINT}/", response_model=AddDatabaseOut, status_code=201)
+@server.post(f"/{VERSION}/{ENDPOINT}/", response_model=AddDatabaseOut, status_code=201)
 async def add_database(data: AddDatabaseIn, db: Storage = Depends(get_internal_database)):
     item = from_request(data)
 
@@ -102,7 +102,7 @@ async def add_database(data: AddDatabaseIn, db: Storage = Depends(get_internal_d
     return to_response(result)
 
 
-@api.put(f"/{VERSION}/{ENDPOINT}/{{id}}/", response_model=SetDatabaseOut)
+@server.put(f"/{VERSION}/{ENDPOINT}/{{id}}/", response_model=SetDatabaseOut)
 async def set_database(id: str, data: SetDatabaseIn, db: Storage = Depends(get_internal_database)):
     item = from_request(data)
 
@@ -113,7 +113,7 @@ async def set_database(id: str, data: SetDatabaseIn, db: Storage = Depends(get_i
     return to_response(result)
 
 
-@api.patch(f'/{VERSION}/{ENDPOINT}/{{id}}/')
+@server.patch(f'/{VERSION}/{ENDPOINT}/{{id}}/')
 async def edit_database(id: str, data: EditDatabaseIn, db: Storage = Depends(get_internal_database)):
     item = from_request(data, patch=True)
 
@@ -124,7 +124,7 @@ async def edit_database(id: str, data: EditDatabaseIn, db: Storage = Depends(get
     return to_response(result)
 
 
-@api.delete(f'/{VERSION}/{ENDPOINT}/{{id}}/', status_code=204)
+@server.delete(f'/{VERSION}/{ENDPOINT}/{{id}}/', status_code=204)
 async def delete_database(id: str, db: Storage = Depends(get_internal_database)):
     model = await Database.initialize(db)
     result = await model.delete_record(id)

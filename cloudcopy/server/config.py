@@ -19,6 +19,10 @@ DEBUG = os.environ.get(
     'CLCP_DEBUG', False
 )
 
+API_PORT = int(os.environ.get(
+    'API_PORT', '2527'
+))
+
 # LOG_PATH: path to server's log files
 # TODO: support cloud logging in addition
 LOG_PATH = os.environ.get(

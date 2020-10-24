@@ -5,7 +5,7 @@ import sys
 
 from adbc.workflow import Workflow as Runner
 
-from cloudcopy.server.tasks.core import app
+from cloudcopy.server.tasks import worker
 from cloudcopy.server.utils import get_uuid, now
 from cloudcopy.server.storage import get_internal_database
 from cloudcopy.server.models import Job, Workflow
@@ -175,7 +175,7 @@ async def _execute(workflow_id: str):
                 )
 
 
-@app.task(name='workflow-execute')
+@worker.task(name='workflow-execute')
 def execute(workflow_id):
     result = asyncio.run(_execute(workflow_id))
     return result

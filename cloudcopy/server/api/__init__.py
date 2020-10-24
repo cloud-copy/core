@@ -1,1 +1,1 @@
-from .core import api  # noqa
+from .core import server  # noqa

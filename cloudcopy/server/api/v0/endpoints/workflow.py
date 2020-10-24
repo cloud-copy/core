@@ -6,7 +6,7 @@ from adbc.store import Database as Storage
 from pydantic import BaseModel
 from fastapi import Depends
 
-from cloudcopy.server.api import api
+from cloudcopy.server.api import server
 from cloudcopy.server.models import Workflow
 from cloudcopy.server.storage import get_internal_database
 from ...utils import from_request, to_response
@@ -90,21 +90,21 @@ class DeleteWorkflowOut(Out):
     data: str
 
 
-@api.get(f"/{VERSION}/{ENDPOINT}/", response_model=GetWorkflowsOut)
+@server.get(f"/{VERSION}/{ENDPOINT}/", response_model=GetWorkflowsOut)
 async def get_workflows(db: Storage = Depends(get_internal_database)):
     model = await Workflow.initialize(db)
     result = await model.get()
     return to_response(result)
 
 
-@api.get(f"/{VERSION}/{ENDPOINT}/{{id}}/", response_model=GetWorkflowOut)
+@server.get(f"/{VERSION}/{ENDPOINT}/{{id}}/", response_model=GetWorkflowOut)
 async def get_workflow(id: str, db: Storage = Depends(get_internal_database)):
     model = await Workflow.initialize(db)
     result = await model.get_record(id)
     return to_response(result)
 
 
-@api.post(f"/{VERSION}/{ENDPOINT}/", response_model=AddWorkflowOut, status_code=201)
+@server.post(f"/{VERSION}/{ENDPOINT}/", response_model=AddWorkflowOut, status_code=201)
 async def add_workflow(item: AddWorkflowIn, db: Storage = Depends(get_internal_database)):
     item = from_request(item)
 
@@ -115,7 +115,7 @@ async def add_workflow(item: AddWorkflowIn, db: Storage = Depends(get_internal_d
     return to_response(result)
 
 
-@api.put(f"/{VERSION}/{ENDPOINT}/{{id}}/", response_model=SetWorkflowOut)
+@server.put(f"/{VERSION}/{ENDPOINT}/{{id}}/", response_model=SetWorkflowOut)
 async def set_workflow(id: str, item: SetWorkflowIn, db: Storage = Depends(get_internal_database)):
     item = from_request(item)
 
@@ -126,7 +126,7 @@ async def set_workflow(id: str, item: SetWorkflowIn, db: Storage = Depends(get_i
     return to_response(result)
 
 
-@api.patch(f'/{VERSION}/{ENDPOINT}/{{id}}/')
+@server.patch(f'/{VERSION}/{ENDPOINT}/{{id}}/')
 async def edit_workflow(id: str, item: EditWorkflowIn, db: Storage = Depends(get_internal_database)):
     item = from_request(item, patch=True)
 
@@ -137,7 +137,7 @@ async def edit_workflow(id: str, item: EditWorkflowIn, db: Storage = Depends(get
     return to_response(result)
 
 
-@api.delete(f'/{VERSION}/{ENDPOINT}/{{id}}/', status_code=204)
+@server.delete(f'/{VERSION}/{ENDPOINT}/{{id}}/', status_code=204)
 async def delete_workflow(id: str, db: Storage = Depends(get_internal_database)):
     model = await Workflow.initialize(db)
     result = await model.delete_record(id)

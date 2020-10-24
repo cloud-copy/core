@@ -6,7 +6,7 @@ from adbc.store import Database as Storage
 from pydantic import BaseModel
 from fastapi import Depends
 
-from cloudcopy.server.api import api
+from cloudcopy.server.api import server
 from cloudcopy.server.models import Job
 from cloudcopy.server.storage import get_internal_database
 from ...utils import from_request, to_response
@@ -55,7 +55,7 @@ class DeleteJobOut(Out):
     data: str
 
 
-@api.get(f"/{VERSION}/{ENDPOINT}/", response_model=GetJobsOut)
+@server.get(f"/{VERSION}/{ENDPOINT}/", response_model=GetJobsOut)
 async def get_jobs(db: Storage = Depends(get_internal_database), f__workflow_id: Optional[str] = None):
     model = await Job.initialize(db)
     query = model
@@ -66,14 +66,14 @@ async def get_jobs(db: Storage = Depends(get_internal_database), f__workflow_id:
     return to_response(result)
 
 
-@api.get(f"/{VERSION}/{ENDPOINT}/{{id}}/", response_model=GetJobOut)
+@server.get(f"/{VERSION}/{ENDPOINT}/{{id}}/", response_model=GetJobOut)
 async def get_job(id: str, db: Storage = Depends(get_internal_database)):
     model = await Job.initialize(db)
     result = await model.get_record(id)
     return to_response(result)
 
 
-@api.delete(f'/{VERSION}/{ENDPOINT}/{{id}}/', status_code=204)
+@server.delete(f'/{VERSION}/{ENDPOINT}/{{id}}/', status_code=204)
 async def delete_job(id: str, db: Storage = Depends(get_internal_database)):
     model = await Job.initialize(db)
     result = await model.delete_record(id)
